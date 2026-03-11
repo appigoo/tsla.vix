@@ -420,13 +420,38 @@ with st.sidebar:
 
     tg_enabled = st.checkbox("启用 Telegram 告警", value=False)
 
-    tg_token   = st.text_input("Bot Token",
-                               placeholder="110201543:AAHdqTcvCH1vGWJxfSeofSz326CKEqt4VN",
-                               type="password",
-                               help="从 @BotFather 获取，格式：数字:字母")
-    tg_chat_id = st.text_input("Chat ID",
-                               placeholder="-1001234567890 或 你的 user_id",
-                               help="可用 @userinfobot 查询你的 Chat ID")
+    # ── 从 st.secrets 读取（优先），否则显示手动输入框 ──
+    _secret_token   = st.secrets.get("telegram", {}).get("bot_token", "")
+    _secret_chat_id = st.secrets.get("telegram", {}).get("chat_id", "")
+
+    if _secret_token and _secret_chat_id:
+        # Secrets 已配置：显示已加载状态，不暴露明文
+        tg_token   = _secret_token
+        tg_chat_id = _secret_chat_id
+        st.markdown("""
+<div style="background:#3df5b010;border:1px solid #3df5b055;border-radius:8px;
+            padding:8px 12px;font-family:'Space Mono',monospace;font-size:10px;
+            color:#3df5b0;line-height:1.8">
+  ✅ <b>已从 Streamlit Secrets 加载</b><br>
+  <span style="color:#5a5c78">bot_token ••••••••<br>
+  chat_id ••••••••</span>
+</div>""", unsafe_allow_html=True)
+    else:
+        # Secrets 未配置：降级到手动输入
+        st.markdown("""
+<div style="background:#ff3d6b0a;border:1px solid #ff3d6b33;border-radius:8px;
+            padding:8px 12px;font-family:'Space Mono',monospace;font-size:10px;
+            color:#ff3d6b;line-height:1.6;margin-bottom:8px">
+  ⚠ 未检测到 Secrets，请手动输入<br>
+  <span style="color:#5a5c78">建议配置 .streamlit/secrets.toml</span>
+</div>""", unsafe_allow_html=True)
+        tg_token   = st.text_input("Bot Token",
+                                   placeholder="110201543:AAHdqTcvCH1vGWJxfSeofSz326CKEqt4VN",
+                                   type="password",
+                                   help="从 @BotFather 获取")
+        tg_chat_id = st.text_input("Chat ID",
+                                   placeholder="-1001234567890 或 你的 user_id",
+                                   help="可用 @userinfobot 查询")
 
     # 背离检测参数
     st.markdown("**背离检测灵敏度**")
@@ -451,7 +476,7 @@ with st.sidebar:
                 else:
                     st.error(f"❌ {msg}")
             else:
-                st.warning("请先填写 Token 和 Chat ID")
+                st.warning("未检测到有效的 Token / Chat ID")
     with col_clear:
         if st.button("🗑 清除记录", use_container_width=True):
             st.session_state.alert_history = []
